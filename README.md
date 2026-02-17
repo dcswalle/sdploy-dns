@@ -254,6 +254,10 @@ dig @127.0.0.1 example.local
 
 Pull requests are welcome. For significant changes, please open an issue first to discuss what you'd like to change.
 
+## Releasing
+
+For maintainers: see [RELEASING.md](RELEASING.md) for instructions on creating a new release.
+
 ## License
 
 [MIT](LICENSE)
