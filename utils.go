@@ -13,8 +13,18 @@ import (
 // parseSubnet parses a CIDR subnet string.
 func parseSubnet(subnetStr string) (*net.IPNet, error) {
 	if !strings.Contains(subnetStr, "/") {
-		// If no CIDR notation, treat as /32 (single IP)
-		subnetStr += "/32"
+		// If no CIDR notation, infer the correct single-IP mask based on IP version.
+		ip := net.ParseIP(subnetStr)
+		if ip == nil {
+			return nil, fmt.Errorf("invalid IP address %q", subnetStr)
+		}
+		if ip.To4() != nil {
+			// IPv4 single IP
+			subnetStr += "/32"
+		} else {
+			// IPv6 single IP
+			subnetStr += "/128"
+		}
 	}
 	_, ipNet, err := net.ParseCIDR(subnetStr)
 	return ipNet, err
