@@ -96,7 +96,8 @@ jobs:
         with:
           tag: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          body_path: release_notes.md
-          files: ./dist/*
+          bodyFile: release_notes.md
+          artifacts: ./dist/*
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
+          allowUpdates: true
