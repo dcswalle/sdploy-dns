@@ -24,27 +24,27 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Stop and disable service
-if systemctl is-active --quiet ${SERVICE_NAME}; then
+if systemctl is-active --quiet "${SERVICE_NAME}"; then
     echo -e "${GREEN}Stopping ${SERVICE_NAME} service...${NC}"
-    systemctl stop ${SERVICE_NAME}
+    systemctl stop "${SERVICE_NAME}"
 fi
 
-if systemctl is-enabled --quiet ${SERVICE_NAME}; then
+if systemctl is-enabled --quiet "${SERVICE_NAME}"; then
     echo -e "${GREEN}Disabling ${SERVICE_NAME} service...${NC}"
-    systemctl disable ${SERVICE_NAME}
+    systemctl disable "${SERVICE_NAME}"
 fi
 
 # Remove service file
 if [ -f "${SERVICE_DIR}/${SERVICE_NAME}.service" ]; then
     echo -e "${GREEN}Removing service file...${NC}"
-    rm -f ${SERVICE_DIR}/${SERVICE_NAME}.service
+    rm -f "${SERVICE_DIR}/${SERVICE_NAME}.service"
     systemctl daemon-reload
 fi
 
 # Remove binary
 if [ -f "${INSTALL_DIR}/${BINARY_NAME}" ]; then
     echo -e "${GREEN}Removing binary...${NC}"
-    rm -f ${INSTALL_DIR}/${BINARY_NAME}
+    rm -f "${INSTALL_DIR}/${BINARY_NAME}"
 fi
 
 echo -e "${GREEN}Uninstallation complete!${NC}"
