@@ -1,0 +1,70 @@
+# Labeler configuration for automatic PR labeling based on file paths
+# For more information, see: https://github.com/actions/labeler
+
+# Documentation changes
+documentation:
+  - changed-files:
+    - any-glob-to-any-file: '**/*.md'
+
+# Workflow/CI changes  
+ci:
+  - changed-files:
+    - any-glob-to-any-file: '.github/workflows/**'
+    - any-glob-to-any-file: '.github/**/*.yml'
+    - any-glob-to-any-file: '.golangci.yml'
+
+# Go source code changes
+go:
+  - changed-files:
+    - any-glob-to-any-file: '**/*.go'
+
+# Configuration files
+configuration:
+  - changed-files:
+    - any-glob-to-any-file: 'config.go'
+    - any-glob-to-any-file: '.env'
+    - any-glob-to-any-file: '*.yml'
+    - any-glob-to-any-file: '*.yaml'
+
+# API changes
+api:
+  - changed-files:
+    - any-glob-to-any-file: 'api.go'
+    - any-glob-to-any-file: 'server.go'
+    - any-glob-to-any-file: 'swagger.go'
+
+# Security-related changes
+security:
+  - changed-files:
+    - any-glob-to-any-file: 'utils.go'
+    - any-glob-to-any-file: 'config.go'
+    - any-glob-to-any-file: '.env'
+
+# Database-related changes
+database:
+  - changed-files:
+    - any-glob-to-any-file: 'mariadb.go'
+    - any-glob-to-any-file: 'sql_api.go'
+
+# Kubernetes/K3s related
+k8s:
+  - changed-files:
+    - any-glob-to-any-file: 'k3s*.go'
+    - any-glob-to-any-file: 'scripts/k3s*.sh'
+
+# Deployment related
+deployment:
+  - changed-files:
+    - any-glob-to-any-file: 'deploy.go'
+    - any-glob-to-any-file: 'laravel.go'
+    - any-glob-to-any-file: 'website.go'
+
+# Scripts
+scripts:
+  - changed-files:
+    - any-glob-to-any-file: 'scripts/**'
+
+# Tests
+tests:
+  - changed-files:
+    - any-glob-to-any-file: '**/*_test.go'
