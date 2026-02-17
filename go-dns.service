@@ -4,7 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
+User=go-dns
+Group=go-dns
 WorkingDirectory=/etc/go-dns
 ExecStart=/usr/local/bin/go-dns-server /etc/go-dns/config.yml
 ExecReload=/bin/kill -HUP $MAINPID
@@ -21,6 +22,10 @@ ProtectSystem=strict
 ProtectHome=true
 ReadWritePaths=/etc/go-dns
 ReadOnlyPaths=/usr/local/bin
+
+# Capabilities - only allow binding to privileged ports (port 53)
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 
 [Install]
 WantedBy=multi-user.target
