@@ -130,11 +130,14 @@ func (s *DNSServer) loadBlockListFileWithRestrictionsMap(entry map[interface{}]i
 }
 
 // loadBlockListFile loads a single adblock-style host file or URL with optional restrictions.
+// The function ensures proper resource cleanup via defer, which executes on both success
+// and error paths, including any errors returned by processBlockListReader.
 func (s *DNSServer) loadBlockListFile(filePath string, restrictions *BlockEntry) error {
 	reader, sourceName, closer, err := s.getBlockListReader(filePath, restrictions)
 	if err != nil {
 		return err
 	}
+	// Defer ensures the reader/connection is closed on all return paths (success or error).
 	defer func() {
 		if closer != nil {
 			if closeErr := closer.Close(); closeErr != nil {
@@ -215,6 +218,7 @@ func (s *DNSServer) getFileReader(filePath string) (io.Reader, string, io.Closer
 }
 
 // processBlockListReader processes a block list from a reader.
+// Note: The caller is responsible for closing the reader. This function does not close it.
 func (s *DNSServer) processBlockListReader(reader io.Reader, sourceName string, restrictions *BlockEntry) error {
 	scanner := bufio.NewScanner(reader)
 	lineNum := 0
