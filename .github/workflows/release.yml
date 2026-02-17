@@ -92,8 +92,9 @@ jobs:
           cat release_notes.md
 
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: ncipollo/release-action@v1
         with:
+          tag: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           body_path: release_notes.md
           files: ./dist/*
