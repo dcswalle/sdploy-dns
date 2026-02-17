@@ -44,7 +44,7 @@ func NewDNSServer(config *Config) (*DNSServer, error) {
 // createDNSServerInstance creates and initializes a DNS server instance.
 func createDNSServerInstance(config *Config, nameservers []NameserverConfig, overwrites map[string]*OverwriteEntry) *DNSServer {
 	// Create HTTP client with DNS fallback support
-	httpClient := createHTTPClientWithDNSFallback(config.FallbackDNS)
+	httpClient := createHTTPClientWithDNSFallback(config.FallbackDNS, config.DNSCheckDomain)
 
 	return &DNSServer{
 		config:          config,
@@ -111,14 +111,14 @@ func (s *DNSServer) Start() error {
 }
 
 // createHTTPClientWithDNSFallback creates an HTTP client with DNS fallback support.
-func createHTTPClientWithDNSFallback(fallbackDNS string) *http.Client {
+func createHTTPClientWithDNSFallback(fallbackDNS string, dnsCheckDomain string) *http.Client {
 	// Set default fallback DNS if not configured
 	if fallbackDNS == "" {
 		fallbackDNS = "8.8.8.8" // Default to Google DNS
 	}
 
 	// Check if DNS is working
-	dnsWorking := checkDNSWorking()
+	dnsWorking := checkDNSWorking(dnsCheckDomain)
 
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{

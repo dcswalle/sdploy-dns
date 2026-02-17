@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -76,14 +78,38 @@ func getClientIP(w dns.ResponseWriter) net.IP {
 	return net.ParseIP(host)
 }
 
-// isURL checks if a string is a URL (starts with http:// or https://).
+// isURL checks if a string is a valid HTTP or HTTPS URL.
 func isURL(path string) bool {
-	return strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")
+	u, err := url.Parse(path)
+	if err != nil {
+		return false
+	}
+	// Check if it's a valid HTTP or HTTPS URL with a host
+	return (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
 }
 
-// checkDNSWorking checks if DNS resolution is working by trying to resolve a well-known domain.
-func checkDNSWorking() bool {
-	_, err := net.LookupHost("google.com")
+// checkDNSWorking checks if DNS resolution is working by trying to resolve a specified domain.
+// Uses a timeout to prevent hanging during startup.
+func checkDNSWorking(domain string) bool {
+	if domain == "" {
+		domain = "dns.google" // Default to a neutral test domain
+	}
+	
+	// Create a resolver with timeout
+	resolver := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: dnsCheckTimeout,
+			}
+			return d.DialContext(ctx, network, address)
+		},
+	}
+	
+	ctx, cancel := context.WithTimeout(context.Background(), dnsCheckTimeout)
+	defer cancel()
+	
+	_, err := resolver.LookupHost(ctx, domain)
 	return err == nil
 }
 

@@ -1,5 +1,7 @@
 package main
 
+import "time"
+
 // Protocol constants for nameserver configuration.
 const (
 	protocolUDP = "udp"
@@ -7,3 +9,6 @@ const (
 	protocolDOT = "dot"
 	protocolDOH = "doh"
 )
+
+// DNS check timeout constant
+const dnsCheckTimeout = 5 * time.Second
