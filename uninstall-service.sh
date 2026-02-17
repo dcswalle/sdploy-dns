@@ -49,3 +49,6 @@ fi
 
 echo -e "${GREEN}Uninstallation complete!${NC}"
 echo -e "${YELLOW}Note: Config files in /etc/go-dns were not removed${NC}"
+echo ""
+echo -e "${YELLOW}To remove the dedicated 'go-dns' user, run:${NC}"
+echo -e "  ${GREEN}sudo userdel go-dns${NC}"

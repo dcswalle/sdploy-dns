@@ -26,6 +26,14 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# Create dedicated user and group for the service
+if ! id -u go-dns >/dev/null 2>&1; then
+    echo -e "${GREEN}Creating dedicated user 'go-dns'...${NC}"
+    useradd --system --no-create-home --shell /usr/sbin/nologin go-dns
+else
+    echo -e "${YELLOW}User 'go-dns' already exists${NC}"
+fi
+
 # Check if binary exists
 if [ ! -f "./${BINARY_NAME}" ]; then
     echo -e "${YELLOW}Binary not found. Building...${NC}"
@@ -39,6 +47,7 @@ fi
 # Create config directory
 echo -e "${GREEN}Creating config directory: ${CONFIG_DIR}${NC}"
 mkdir -p ${CONFIG_DIR}
+chown go-dns:go-dns ${CONFIG_DIR}
 
 # Copy binary
 echo -e "${GREEN}Installing binary to ${INSTALL_DIR}${NC}"
@@ -49,6 +58,7 @@ chmod +x ${INSTALL_DIR}/${BINARY_NAME}
 if [ ! -f "${CONFIG_DIR}/config.yml" ]; then
     echo -e "${GREEN}Copying config file to ${CONFIG_DIR}${NC}"
     cp config.yml ${CONFIG_DIR}/config.yml
+    chown go-dns:go-dns ${CONFIG_DIR}/config.yml
     echo -e "${YELLOW}Please edit ${CONFIG_DIR}/config.yml to configure the server${NC}"
     echo -e "${YELLOW}Note: Update file paths in config.yml to use absolute paths or paths relative to ${CONFIG_DIR}${NC}"
 else
@@ -59,6 +69,7 @@ fi
 if [ -f "hosts.txt" ] && [ ! -f "${CONFIG_DIR}/hosts.txt" ]; then
     echo -e "${GREEN}Copying hosts.txt to ${CONFIG_DIR}${NC}"
     cp hosts.txt ${CONFIG_DIR}/hosts.txt
+    chown go-dns:go-dns ${CONFIG_DIR}/hosts.txt
 fi
 
 # Copy service file
