@@ -1,0 +1,31 @@
+[Unit]
+Description=Go DNS Server
+After=network.target
+
+[Service]
+Type=simple
+User=go-dns
+Group=go-dns
+WorkingDirectory=/etc/go-dns
+ExecStart=/usr/local/bin/go-dns-server /etc/go-dns/config.yml
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=go-dns
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/etc/go-dns
+ReadOnlyPaths=/usr/local/bin
+
+# Capabilities - only allow binding to privileged ports (port 53)
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=multi-user.target

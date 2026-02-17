@@ -1,0 +1,17 @@
+# Example hosts file (adblock-style format)
+# This is a sample file - replace with actual adblock lists
+
+# Format 1: IP address followed by domain
+127.0.0.1 ads.example.com
+0.0.0.0 tracking.example.com
+
+# Format 2: Just domain name
+malware-site.com
+phishing-site.com
+
+# Format 3: Adblock format
+||adserver.com^
+||tracker.com$
+
+# Comments are ignored
+# Empty lines are ignored
