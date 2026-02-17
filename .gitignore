@@ -1,0 +1,6 @@
+# Compiled binary
+go-dns
+
+# Temporary files
+*.tmp
+*.log
