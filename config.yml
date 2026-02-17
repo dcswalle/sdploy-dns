@@ -19,6 +19,9 @@ reload_interval: 60
 # Fallback DNS used when system DNS is unavailable (for downloading block lists)
 fallback_dns: "8.8.8.8"
 
+# Domain used to check if DNS is working (default: "dns.google")
+# dns_check_domain: "dns.google"
+
 # Upstream nameservers (round-robin across all entries)
 nameservers:
   - "8.8.8.8"
