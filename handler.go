@@ -19,6 +19,16 @@ func (s *DNSServer) handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 		return
 	}
 
+	// Ensure there is at least one question to avoid panics on malformed requests
+	if len(r.Question) == 0 {
+		msg := new(dns.Msg)
+		msg.SetReply(r)
+		msg.SetRcode(r, dns.RcodeFormatError)
+		if err := w.WriteMsg(msg); err != nil {
+			errorLog("Error writing format error response: %v", err)
+		}
+		return
+	}
 	// Normalize domain once
 	domain := normalizeDomain(r.Question[0].Name)
 
