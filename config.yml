@@ -1,0 +1,60 @@
+# go-dns configuration
+# Run with: sudo ./go-dns config.yml
+
+listen_addr: ":53"
+
+# Logging (all disabled by default for silent operation)
+debug: false          # Full verbose logging
+log_blocks: false     # Log blocked requests only
+log_overwrites: false # Log overwritten requests only
+
+# Cache TTL in seconds (set to 0 to disable caching)
+cache_ttl: 60
+# Negative cache TTL for NXDOMAIN responses in seconds (set to 0 to disable)
+negative_cache_ttl: 300
+
+# Reload interval for URL-based block lists in minutes (set to 0 to disable)
+reload_interval: 60
+
+# Fallback DNS used when system DNS is unavailable (for downloading block lists)
+fallback_dns: "8.8.8.8"
+
+# Upstream nameservers (round-robin across all entries)
+nameservers:
+  - "8.8.8.8"
+  - "8.8.4.4"
+
+# Advanced nameserver formats (uncomment to use):
+# DNS-over-TLS (DoT):
+#  - address: "1.1.1.1"
+#    protocol: "dot"
+# DNS-over-HTTPS (DoH):
+#  - address: "https://dns.google/dns-query"
+#    protocol: "doh"
+# TCP:
+#  - address: "9.9.9.9"
+#    protocol: "tcp"
+
+# Custom DNS records (uncomment and edit to use)
+#overwrites:
+#  example.local: "127.0.0.1"
+#
+# Per-client overwrite (first IP in 'ips' is the returned address):
+#  internal.local:
+#    ips:
+#      - "192.168.1.10"     # returned IP (also matched as a client IP)
+#    subnets:
+#      - "192.168.1.0/24"
+
+# Block lists — adblock-style host files, loaded into RAM at startup
+# Accepts local file paths or URLs (URLs are reloaded every reload_interval minutes)
+#block_lists:
+#  - "hosts.txt"
+#  - "https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt"
+#
+# Per-client block list (block only for specific IPs or subnets):
+#  - file: "hosts-malware.txt"
+#    ips:
+#      - "192.168.1.1"
+#    subnets:
+#      - "10.0.0.0/8"
