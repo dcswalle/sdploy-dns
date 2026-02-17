@@ -83,7 +83,7 @@ func isURL(path string) bool {
 }
 
 // checkDNSWorking checks if DNS resolution is working by trying to resolve a specified domain.
-// Uses a 5-second timeout to prevent hanging during startup.
+// Uses a timeout to prevent hanging during startup.
 func checkDNSWorking(domain string) bool {
 	if domain == "" {
 		domain = "dns.google" // Default to a neutral test domain
@@ -94,13 +94,13 @@ func checkDNSWorking(domain string) bool {
 		PreferGo: true,
 		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
 			d := net.Dialer{
-				Timeout: 5 * time.Second,
+				Timeout: dnsCheckTimeout,
 			}
 			return d.DialContext(ctx, network, address)
 		},
 	}
 	
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), dnsCheckTimeout)
 	defer cancel()
 	
 	_, err := resolver.LookupHost(ctx, domain)
