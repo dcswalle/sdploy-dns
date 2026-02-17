@@ -1,0 +1,11 @@
+# SLSA Go builder config (version 1 only supported)
+version: 1
+
+binary: go-sdploy
+goos: linux
+goarch: amd64
+main: .
+# Only -trimpath and -tags=... are supported; -mod=vendor is not.
+# The workflow runs "go mod vendor" before build, so vendor is used by default.
+flags:
+  - -trimpath
