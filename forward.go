@@ -132,6 +132,8 @@ func (s *DNSServer) forwardRequest(w dns.ResponseWriter, r *dns.Msg, domain stri
 	}
 
 	// Check if there's already a pending request for this key
+	// Lock ordering: pendingMu is always released before acquiring cacheMu
+	// to prevent deadlock. This ensures consistent lock ordering throughout.
 	s.pendingMu.Lock()
 	pending, exists := s.pendingRequests[key]
 	if !exists {
@@ -140,7 +142,7 @@ func (s *DNSServer) forwardRequest(w dns.ResponseWriter, r *dns.Msg, domain stri
 			waiters: make([]chan *dns.Msg, 0),
 		}
 		s.pendingRequests[key] = pending
-		s.pendingMu.Unlock()
+		s.pendingMu.Unlock() // Released before calling handleFirstRequest (which may acquire cacheMu)
 		s.handleFirstRequest(w, r, domain, key, pending)
 		return
 	}
