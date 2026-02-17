@@ -1,6 +1,6 @@
 # go-dns
 
-[![Build & Release](https://github.com/yourusername/go-dns/actions/workflows/release.yml/badge.svg)](https://github.com/yourusername/go-dns/actions/workflows/release.yml)
+[![Build & Release](https://github.com/dcswalle/sdploy-dns/actions/workflows/release.yml/badge.svg)](https://github.com/dcswalle/sdploy-dns/actions/workflows/release.yml)
 [![Go Version](https://img.shields.io/badge/go-1.24-blue.svg)](https://go.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -22,7 +22,7 @@ A lightweight, self-hosted DNS server written in Go with ad blocking, custom ove
 
 ### Pre-built Binaries
 
-Download the latest release for your platform from the [Releases](https://github.com/yourusername/go-dns/releases) page:
+Download the latest release for your platform from the [Releases](https://github.com/dcswalle/sdploy-dns/releases) page:
 
 | Platform | Architecture | File |
 |---|---|---|
@@ -33,7 +33,7 @@ Download the latest release for your platform from the [Releases](https://github
 
 ```bash
 # Example: Linux x86_64
-curl -L https://github.com/yourusername/go-dns/releases/latest/download/go-dns-linux-amd64 -o go-dns
+curl -L https://github.com/dcswalle/sdploy-dns/releases/latest/download/go-dns-linux-amd64 -o go-dns
 chmod +x go-dns
 sudo ./go-dns config.yml
 ```
@@ -43,8 +43,8 @@ sudo ./go-dns config.yml
 Requires Go 1.24 or later.
 
 ```bash
-git clone https://github.com/yourusername/go-dns.git
-cd go-dns
+git clone https://github.com/dcswalle/sdploy-dns.git
+cd sdploy-dns
 go build -o go-dns .
 sudo ./go-dns config.yml
 ```
