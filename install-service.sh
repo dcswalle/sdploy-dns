@@ -29,7 +29,7 @@ fi
 # Check if binary exists
 if [ ! -f "./${BINARY_NAME}" ]; then
     echo -e "${YELLOW}Binary not found. Building...${NC}"
-    go build -o ${BINARY_NAME} main.go
+    go build -o ${BINARY_NAME} .
     if [ $? -ne 0 ]; then
         echo -e "${RED}Build failed!${NC}"
         exit 1
