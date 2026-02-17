@@ -38,6 +38,7 @@ type Config struct {
 	Debug             bool                   `yaml:"debug"`             // Enable debug logging (default: false)
 	LogBlocks         bool                   `yaml:"log_blocks"`        // Log blocked requests (default: false)
 	LogOverwrites     bool                   `yaml:"log_overwrites"`    // Log overwritten requests (default: false)
+	DNSCheckDomain    string                 `yaml:"dns_check_domain"`  // Domain to check for DNS availability (default: "dns.google")
 }
 
 // OverwriteEntry represents a parsed overwrite entry.

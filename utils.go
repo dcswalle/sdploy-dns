@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strings"
@@ -81,9 +82,28 @@ func isURL(path string) bool {
 	return strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")
 }
 
-// checkDNSWorking checks if DNS resolution is working by trying to resolve a well-known domain.
-func checkDNSWorking() bool {
-	_, err := net.LookupHost("google.com")
+// checkDNSWorking checks if DNS resolution is working by trying to resolve a specified domain.
+// Uses a 5-second timeout to prevent hanging during startup.
+func checkDNSWorking(domain string) bool {
+	if domain == "" {
+		domain = "dns.google" // Default to a neutral test domain
+	}
+	
+	// Create a resolver with timeout
+	resolver := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: 5 * time.Second,
+			}
+			return d.DialContext(ctx, network, address)
+		},
+	}
+	
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	
+	_, err := resolver.LookupHost(ctx, domain)
 	return err == nil
 }
 
