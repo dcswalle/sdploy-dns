@@ -72,17 +72,22 @@ type PendingRequest struct {
 }
 
 // DNSServer represents the DNS server instance.
+//
+// Lock ordering: To prevent deadlock, locks must be acquired in this order:
+//  1. pendingMu (always released before acquiring cacheMu)
+//  2. cacheMu (never held while acquiring pendingMu)
+// The locks are never held simultaneously.
 type DNSServer struct {
 	config        *Config
 	blocked       map[string]*BlockEntry // Changed to support conditional blocking
 	overwrites    map[string]*OverwriteEntry
 	nameservers   []NameserverConfig
 	cache         map[string]*CacheEntry // DNS response cache
-	cacheMu       sync.RWMutex           // Cache mutex
+	cacheMu       sync.RWMutex           // Cache mutex - see lock ordering above
 	maxCacheSize  int                    // Maximum cache entries (0 = unlimited)
 	mu            sync.RWMutex
 	pendingRequests map[string]*PendingRequest // Track pending requests for coalescing
-	pendingMu     sync.Mutex
+	pendingMu     sync.Mutex                   // Pending requests mutex - see lock ordering above
 	urlBlockLists []URLBlockList // Track URL-based block lists for reloading
 	client        *dns.Client
 	httpClient    *http.Client
