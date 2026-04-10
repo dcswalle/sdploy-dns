@@ -13,6 +13,19 @@ import (
 	"github.com/miekg/dns"
 )
 
+// cfg returns the active configuration (safe for concurrent reads).
+func (s *DNSServer) cfg() *Config {
+	v := s.configAtomic.Load()
+	if v == nil {
+		return nil
+	}
+	return v.(*Config)
+}
+
+func (s *DNSServer) setConfig(c *Config) {
+	s.configAtomic.Store(c)
+}
+
 // NewDNSServer creates a new DNS server instance.
 func NewDNSServer(config *Config) (*DNSServer, error) {
 	// Parse nameservers
@@ -46,8 +59,7 @@ func createDNSServerInstance(config *Config, nameservers []NameserverConfig, ove
 	// Create HTTP client with DNS fallback support
 	httpClient := createHTTPClientWithDNSFallback(config.FallbackDNS, config.DNSCheckDomain)
 
-	return &DNSServer{
-		config:          config,
+	d := &DNSServer{
 		blocked:         make(map[string]*BlockEntry),
 		overwrites:      overwrites,
 		nameservers:     nameservers,
@@ -63,6 +75,8 @@ func createDNSServerInstance(config *Config, nameservers []NameserverConfig, ove
 			},
 		},
 	}
+	d.setConfig(config)
+	return d
 }
 
 // startBackgroundServices starts all background goroutines for the DNS server.
@@ -74,7 +88,8 @@ func (s *DNSServer) startBackgroundServices() {
 	s.startPendingRequestCleanup()
 
 	// Start block list reloader if there are URL-based lists
-	reloadInterval := s.config.ReloadInterval
+	cfg := s.cfg()
+	reloadInterval := cfg.ReloadInterval
 	if len(s.urlBlockLists) > 0 && reloadInterval > 0 {
 		s.startBlockListReloader(time.Duration(reloadInterval) * time.Minute)
 		log.Printf("URL-based block list reloader started (interval: %d minutes)", reloadInterval)
@@ -82,25 +97,26 @@ func (s *DNSServer) startBackgroundServices() {
 
 	log.Printf("Loaded %d blocked hosts and %d DNS overwrites", len(s.blocked), len(s.overwrites))
 	log.Printf("Configured %d nameservers", len(s.nameservers))
-	if s.config.CacheTTL > 0 {
-		log.Printf("DNS caching enabled (TTL: %ds)", s.config.CacheTTL)
+	if cfg.CacheTTL > 0 {
+		log.Printf("DNS caching enabled (TTL: %ds)", cfg.CacheTTL)
 	}
 }
 
 // Start starts the DNS server.
 func (s *DNSServer) Start() error {
+	cfg := s.cfg()
 	// Create DNS server
 	dnsServer := &dns.Server{
-		Addr:    s.config.ListenAddr,
+		Addr:    cfg.ListenAddr,
 		Net:     "udp",
 		Handler: dns.HandlerFunc(s.handleDNSRequest),
 	}
 
-	s.debugLog("Starting DNS server on %s", s.config.ListenAddr)
+	s.debugLog("Starting DNS server on %s", cfg.ListenAddr)
 	for i, ns := range s.nameservers {
 		log.Printf("Nameserver %d: %s:%d (%s)", i+1, ns.Address, ns.Port, ns.Protocol)
 	}
-	log.Printf("Block lists: %v", s.config.BlockLists)
+	log.Printf("Block lists: %v", cfg.BlockLists)
 
 	// Start UDP server
 	if err := dnsServer.ListenAndServe(); err != nil {

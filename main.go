@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"runtime/debug"
+	"strings"
 
 	"github.com/miekg/dns"
 	"gopkg.in/yaml.v3"
@@ -29,14 +30,7 @@ func main() {
 		log.Fatalf("Failed to parse config file: %v", err)
 	}
 
-	// Set defaults
-	if config.ListenAddr == "" {
-		config.ListenAddr = ":53"
-	}
-	if config.Nameservers == nil {
-		// Default to Google DNS
-		config.Nameservers = []string{"8.8.8.8", "8.8.4.4"}
-	}
+	ApplyConfigDefaults(&config)
 
 	// Set GOGC if configured (tune garbage collection)
 	if config.GOGC > 0 {
@@ -48,6 +42,19 @@ func main() {
 	server, err := NewDNSServer(&config)
 	if err != nil {
 		log.Fatalf("Failed to create DNS server: %v", err)
+	}
+
+	if err := server.StartConfigWatcher(configFile); err != nil {
+		log.Printf("Config hot-reload disabled: %v", err)
+	}
+
+	switch strings.ToLower(config.Role) {
+	case "master":
+		if err := server.startMasterAPI(configFile); err != nil {
+			log.Fatalf("Failed to start master API: %v", err)
+		}
+	case "slave":
+		server.startSlaveSync(configFile)
 	}
 
 	// Start TCP server as well (for larger responses)
