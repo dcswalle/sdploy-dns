@@ -20,7 +20,8 @@ func getCacheKey(r *dns.Msg) string {
 // getCachedResponse retrieves a cached DNS response if it exists and is not expired.
 func (s *DNSServer) getCachedResponse(r *dns.Msg, clientIP net.IP) *dns.Msg {
 	// Check if caching is enabled (either positive or negative)
-	if s.config.CacheTTL <= 0 && s.config.NegativeCacheTTL <= 0 {
+	cfg := s.cfg()
+	if cfg == nil || (cfg.CacheTTL <= 0 && cfg.NegativeCacheTTL <= 0) {
 		return nil
 	}
 
@@ -117,8 +118,12 @@ func (s *DNSServer) setCachedResponse(r *dns.Msg, resp *dns.Msg) {
 
 // cacheNegativeResponse caches NXDOMAIN or NOERROR with no answers responses.
 func (s *DNSServer) cacheNegativeResponse(r *dns.Msg, resp *dns.Msg, key string) {
+	cfg := s.cfg()
+	if cfg == nil {
+		return
+	}
 	// Check if negative caching is enabled
-	negativeTTL := s.config.NegativeCacheTTL
+	negativeTTL := cfg.NegativeCacheTTL
 	if negativeTTL <= 0 {
 		return // Negative caching disabled
 	}
@@ -170,8 +175,12 @@ func (s *DNSServer) cacheNegativeResponse(r *dns.Msg, resp *dns.Msg, key string)
 
 // cachePositiveResponse caches successful DNS responses.
 func (s *DNSServer) cachePositiveResponse(r *dns.Msg, resp *dns.Msg, key string) {
+	cfg := s.cfg()
+	if cfg == nil {
+		return
+	}
 	// Handle successful responses
-	if s.config.CacheTTL <= 0 {
+	if cfg.CacheTTL <= 0 {
 		return
 	}
 
@@ -181,7 +190,7 @@ func (s *DNSServer) cachePositiveResponse(r *dns.Msg, resp *dns.Msg, key string)
 	}
 
 	// Determine cache TTL from response or use configured TTL
-	ttl := s.config.CacheTTL
+	ttl := cfg.CacheTTL
 	if len(resp.Answer) > 0 {
 		// Use minimum TTL from answer records
 		const maxUint32 = 4294967295
@@ -338,9 +347,17 @@ func (s *DNSServer) cleanupExpiredCache() {
 	}
 }
 
+// clearDNSCache drops all cached DNS entries (e.g. after config reload).
+func (s *DNSServer) clearDNSCache() {
+	s.cacheMu.Lock()
+	defer s.cacheMu.Unlock()
+	clear(s.cache)
+}
+
 // startCacheCleanup starts a goroutine to periodically clean up expired cache entries.
 func (s *DNSServer) startCacheCleanup() {
-	if s.config.CacheTTL <= 0 {
+	cfg := s.cfg()
+	if cfg == nil || (cfg.CacheTTL <= 0 && cfg.NegativeCacheTTL <= 0) {
 		return
 	}
 

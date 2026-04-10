@@ -15,11 +15,12 @@ import (
 
 // loadBlockLists loads adblock-style host files with per-file IP/subnet restrictions.
 func (s *DNSServer) loadBlockLists() error {
-	if s.config.BlockLists == nil {
+	cfg := s.cfg()
+	if cfg == nil || cfg.BlockLists == nil {
 		return nil
 	}
 
-	switch blockLists := s.config.BlockLists.(type) {
+	switch blockLists := cfg.BlockLists.(type) {
 	case []interface{}:
 		// New format: can contain strings (file paths) or maps (file with restrictions)
 		for _, item := range blockLists {
@@ -433,21 +434,48 @@ func (s *DNSServer) reloadURLBlockList(urlBlockList URLBlockList) error {
 	return nil
 }
 
+// stopBlockListReloader stops the periodic URL block list reloader, if running.
+func (s *DNSServer) stopBlockListReloader() {
+	s.reloaderStopMu.Lock()
+	ch := s.reloaderStop
+	s.reloaderStop = nil
+	s.reloaderStopMu.Unlock()
+	if ch != nil {
+		close(ch)
+	}
+}
+
 // startBlockListReloader starts a goroutine that periodically reloads URL-based block lists.
 func (s *DNSServer) startBlockListReloader(interval time.Duration) {
+	stop := make(chan struct{})
+	s.reloaderStopMu.Lock()
+	if s.reloaderStop != nil {
+		close(s.reloaderStop)
+	}
+	s.reloaderStop = stop
+	s.reloaderStopMu.Unlock()
+
 	go func() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
-		for range ticker.C {
-			log.Printf("Reloading URL-based block lists...")
-			for _, urlBlockList := range s.urlBlockLists {
-				if err := s.reloadURLBlockList(urlBlockList); err != nil {
-					log.Printf("Warning: failed to reload block list %s: %v", urlBlockList.URL, err)
-					// Continue reloading other lists even if one fails
+		for {
+			select {
+			case <-stop:
+				return
+			case <-ticker.C:
+				log.Printf("Reloading URL-based block lists...")
+				s.mu.RLock()
+				lists := make([]URLBlockList, len(s.urlBlockLists))
+				copy(lists, s.urlBlockLists)
+				s.mu.RUnlock()
+				for _, urlBlockList := range lists {
+					if err := s.reloadURLBlockList(urlBlockList); err != nil {
+						log.Printf("Warning: failed to reload block list %s: %v", urlBlockList.URL, err)
+					}
 				}
+				log.Printf("Finished reloading URL-based block lists")
 			}
-			log.Printf("Finished reloading URL-based block lists")
 		}
 	}()
 }

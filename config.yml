@@ -1,5 +1,6 @@
 # go-dns configuration
 # Run with: sudo ./go-dns config.yml
+# The process watches this file and reloads settings when it changes (listen_addr requires restart).
 
 listen_addr: ":53"
 

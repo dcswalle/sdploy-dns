@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/miekg/dns"
@@ -79,7 +80,8 @@ type PendingRequest struct {
 //  2. cacheMu (never held while acquiring pendingMu)
 // The locks are never held simultaneously.
 type DNSServer struct {
-	config        *Config
+	configAtomic atomic.Value // *Config; use cfg() / setConfig() for access
+	reloadMu     sync.Mutex   // serializes config file reloads
 	blocked       map[string]*BlockEntry // Changed to support conditional blocking
 	overwrites    map[string]*OverwriteEntry
 	nameservers   []NameserverConfig
@@ -90,6 +92,8 @@ type DNSServer struct {
 	pendingRequests map[string]*PendingRequest // Track pending requests for coalescing
 	pendingMu     sync.Mutex                   // Pending requests mutex - see lock ordering above
 	urlBlockLists []URLBlockList // Track URL-based block lists for reloading
+	reloaderStopMu sync.Mutex
+	reloaderStop   chan struct{} // closed to stop URL block list reloader goroutine
 	client        *dns.Client
 	httpClient    *http.Client
 	msgPool       *sync.Pool // Pool for dns.Msg objects
