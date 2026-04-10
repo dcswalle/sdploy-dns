@@ -48,6 +48,12 @@ func (s *DNSServer) reloadConfigFileUnlocked(configPath string) error {
 		newCfg.ListenAddr = prev.ListenAddr
 	}
 
+	if prev != nil {
+		newCfg.Role = prev.Role
+		newCfg.Master = prev.Master
+		newCfg.Slave = prev.Slave
+	}
+
 	nameservers, err := parseNameservers(newCfg.Nameservers)
 	if err != nil {
 		return fmt.Errorf("parse nameservers: %w", err)

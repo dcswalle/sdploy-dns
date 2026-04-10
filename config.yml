@@ -4,6 +4,20 @@
 
 listen_addr: ":53"
 
+# Cluster role: "master", "slave", or omit for standalone.
+# Master serves an HTTP API that slaves pull config from.
+# Both master and slave also serve DNS.
+#role: "master"
+#master:
+#  api_addr: ":8053"       # HTTP API listen address
+#  api_key: "changeme"     # Shared secret (Authorization: Bearer <key>); empty = no auth
+#
+#role: "slave"
+#slave:
+#  master_url: "http://10.0.0.1:8053"  # Master's HTTP API URL
+#  api_key: "changeme"                  # Must match master's api_key
+#  sync_interval: 30                    # Seconds between config pulls (default 30)
+
 # Logging (all disabled by default for silent operation)
 debug: false          # Full verbose logging
 log_blocks: false     # Log blocked requests only

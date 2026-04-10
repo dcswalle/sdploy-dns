@@ -24,9 +24,25 @@ type OverwriteConfig struct {
 	IPs     []string `yaml:"ips"`     // Optional: only apply to these specific IPs
 }
 
+// MasterConfig holds settings for a master-role node.
+type MasterConfig struct {
+	APIAddr string `yaml:"api_addr"` // HTTP API listen address (default ":8053")
+	APIKey  string `yaml:"api_key"`  // Shared secret for Bearer auth (empty = no auth)
+}
+
+// SlaveConfig holds settings for a slave-role node.
+type SlaveConfig struct {
+	MasterURL    string `yaml:"master_url"`    // e.g. "http://10.0.0.1:8053"
+	APIKey       string `yaml:"api_key"`       // Must match master's api_key
+	SyncInterval int    `yaml:"sync_interval"` // Seconds between config pulls (default 30)
+}
+
 // Config represents the DNS server configuration.
 type Config struct {
 	ListenAddr        string                 `yaml:"listen_addr"`
+	Role              string                 `yaml:"role"`               // "master", "slave", or "" (standalone)
+	Master            *MasterConfig          `yaml:"master,omitempty"`
+	Slave             *SlaveConfig           `yaml:"slave,omitempty"`
 	Nameservers       interface{}            `yaml:"nameservers"`        // Can be []string or []NameserverConfig
 	Overwrites        map[string]interface{} `yaml:"overwrites"`        // Can be string or OverwriteConfig
 	BlockLists        interface{}            `yaml:"block_lists"`        // Can be []string or []interface{} with conditional blocks
