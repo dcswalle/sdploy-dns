@@ -14,8 +14,12 @@ import (
 )
 
 func main() {
-	// Load configuration
+	loadDotEnv(".env")
+
 	configFile := "config.yml"
+	if envConfig := ConfigFileFromEnv(); envConfig != "" {
+		configFile = envConfig
+	}
 	if len(os.Args) > 1 {
 		configFile = os.Args[1]
 	}
@@ -30,6 +34,7 @@ func main() {
 		log.Fatalf("Failed to parse config file: %v", err)
 	}
 
+	ApplyEnvOverrides(&config)
 	ApplyConfigDefaults(&config)
 
 	// Set GOGC if configured (tune garbage collection)

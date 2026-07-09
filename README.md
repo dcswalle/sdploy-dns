@@ -26,14 +26,18 @@ A lightweight, self-hosted DNS server written in Go with ad blocking, custom ove
 
 ### Pre-built Binaries
 
-Download the latest release for your platform from the [Releases](https://github.com/dcswalle/sdploy-dns/releases) page:
+Download the latest release for your platform from the [Releases](https://github.com/dcswalle/sdploy-dns/releases) page.
 
-| Platform | Architecture | File |
+**Linux** (all architectures): `go-dns-linux-<arch>` — `386`, `amd64`, `arm`, `arm64`, `loong64`, `mips`, `mipsle`, `mips64`, `mips64le`, `ppc64`, `ppc64le`, `riscv64`, `s390x`
+
+**Windows** (all architectures): `go-dns-windows-<arch>.exe` — `386`, `amd64`, `arm64`
+
+| Platform | Example architecture | File |
 |---|---|---|
 | Linux | x86_64 | `go-dns-linux-amd64` |
 | Linux | ARM64 | `go-dns-linux-arm64` |
-| macOS | x86_64 | `go-dns-darwin-amd64` |
-| macOS | Apple Silicon | `go-dns-darwin-arm64` |
+| Windows | x86_64 | `go-dns-windows-amd64.exe` |
+| Windows | ARM64 | `go-dns-windows-arm64.exe` |
 
 ```bash
 # Example: Linux x86_64
@@ -53,7 +57,18 @@ go build -o go-dns .
 sudo ./go-dns config.yml
 ```
 
-> **Note**: Binding to port 53 requires root privileges (`sudo`) on most systems.
+> **Note**: Binding to port 53 requires elevated privileges on most systems (`sudo` on Linux, Administrator on Windows).
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and set values locally. The `.env` file is gitignored — never commit secrets such as cluster API keys.
+
+```bash
+cp .env.example .env
+# edit .env with your values
+```
+
+`GO_DNS_*` variables override scalar settings in `config.yml`. Complex settings (`overwrites`, `block_lists`) remain in `config.yml`.
 
 ## Quick Start
 
@@ -224,7 +239,7 @@ Run multiple DNS nodes with a single source of truth for shared settings (namese
 role: "master"
 master:
   api_addr: ":8053"       # HTTP API listen address (default: ":8053")
-  api_key: "changeme"     # Bearer token for API auth (empty = no auth)
+  api_key: ""             # Set GO_DNS_MASTER_API_KEY in .env
 
 listen_addr: ":53"
 nameservers:
@@ -239,7 +254,7 @@ block_lists:
 role: "slave"
 slave:
   master_url: "http://10.0.0.1:8053"  # Master's HTTP API URL
-  api_key: "changeme"                  # Must match master's api_key
+  api_key: ""                          # Set GO_DNS_SLAVE_API_KEY in .env
   sync_interval: 30                    # Seconds between config pulls (default: 30)
 
 listen_addr: ":53"
