@@ -4,7 +4,7 @@
 [![Go Version](https://img.shields.io/badge/go-1.24-blue.svg)](https://go.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A lightweight, self-hosted DNS server written in Go with ad blocking, custom overwrites, per-client rules, and support for DNS-over-TLS and DNS-over-HTTPS upstream resolvers.
+A lightweight, self-hosted DNS server written in Go with ad blocking, custom overwrites, per-client rules, HA clustering, config hot-reload, and support for DNS-over-TLS and DNS-over-HTTPS upstream resolvers.
 
 ## Features
 
@@ -12,10 +12,14 @@ A lightweight, self-hosted DNS server written in Go with ad blocking, custom ove
 - **Per-Client Overwrites** — return different IPs based on the client's IP or subnet
 - **Ad & Domain Blocking** — load adblock-style host files from local paths or URLs
 - **Per-Client Block Lists** — apply block lists only to specific IPs or subnets
-- **DNS Response Caching** — reduce upstream queries with configurable TTL
+- **DNS Response Caching** — reduce upstream queries with configurable TTL and optional size limit
+- **Request Coalescing** — deduplicate concurrent identical upstream queries
 - **Multiple Upstream Protocols** — forward via UDP, TCP, DNS-over-TLS (DoT), or DNS-over-HTTPS (DoH)
 - **Round-Robin Nameservers** — distribute queries across multiple upstream servers
+- **UDP & TCP Listeners** — serves DNS on both protocols on the same address
 - **Auto-Reloading Block Lists** — URL-based lists are refreshed on a configurable interval
+- **Config Hot-Reload** — apply config changes at runtime without restarting (except `listen_addr`)
+- **HA Clustering** — master/slave roles for centralized config distribution across nodes
 - **In-Memory Block Lists** — all block lists loaded into RAM at startup for fast lookups
 
 ## Installation
@@ -86,8 +90,11 @@ log_blocks: false               # Log blocked requests (default: false)
 log_overwrites: false           # Log overwritten requests (default: false)
 cache_ttl: 60                   # Positive cache TTL in seconds (0 = disabled)
 negative_cache_ttl: 300         # NXDOMAIN cache TTL in seconds (0 = disabled)
+max_cache_size: 0               # Max cache entries (0 = unlimited)
 reload_interval: 60             # Block list reload interval in minutes (0 = disabled)
 fallback_dns: "8.8.8.8"         # Fallback DNS for downloading block lists
+dns_check_domain: "dns.google"  # Domain used to verify DNS is working
+gogc: 100                       # Go GC target percentage (0 = Go default)
 
 nameservers:
   - "8.8.8.8"
@@ -194,9 +201,60 @@ Popular sources: [StevenBlack/hosts](https://github.com/StevenBlack/hosts), [AdA
 ```yaml
 cache_ttl: 60            # Positive cache TTL in seconds (default: 60, 0 = disabled)
 negative_cache_ttl: 300  # NXDOMAIN cache TTL in seconds (default: 300, 0 = disabled)
+max_cache_size: 10000    # Maximum cache entries (default: 0 = unlimited)
 ```
 
-The cache respects the minimum TTL from DNS response records and is cleaned up automatically every 30 seconds. Cache keys include domain name, query type (A, AAAA, etc.), and query class.
+The cache respects the minimum TTL from DNS response records and is cleaned up automatically every 30 seconds. Cache keys include domain name, query type (A, AAAA, etc.), and query class. When `max_cache_size` is reached, the oldest entries are evicted.
+
+### Config Hot-Reload
+
+The server watches the config file for changes and reloads automatically (300 ms debounce). On reload, nameservers, overwrites, block lists, cache settings, and logging options are applied without a restart.
+
+**Exception:** changing `listen_addr` requires a full restart — the running process keeps the original bind address.
+
+Cluster-specific fields (`role`, `master`, `slave`) are preserved during reload and are not overwritten by synced config on slaves.
+
+### HA Cluster (Master / Slave)
+
+Run multiple DNS nodes with a single source of truth for shared settings (nameservers, overwrites, block lists, etc.). The master serves DNS and exposes an HTTP API; slaves pull config from the master on a schedule.
+
+**Master** — serves DNS and distributes config:
+
+```yaml
+role: "master"
+master:
+  api_addr: ":8053"       # HTTP API listen address (default: ":8053")
+  api_key: "changeme"     # Bearer token for API auth (empty = no auth)
+
+listen_addr: ":53"
+nameservers:
+  - "8.8.8.8"
+block_lists:
+  - "hosts.txt"
+```
+
+**Slave** — serves DNS and syncs config from the master:
+
+```yaml
+role: "slave"
+slave:
+  master_url: "http://10.0.0.1:8053"  # Master's HTTP API URL
+  api_key: "changeme"                  # Must match master's api_key
+  sync_interval: 30                    # Seconds between config pulls (default: 30)
+
+listen_addr: ":53"
+```
+
+Slaves preserve their local `role`, `master`, `slave`, and `listen_addr` when merging config from the master.
+
+**Master API endpoints:**
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/config` | GET | Returns the master's YAML config (`ETag` / `If-None-Match` supported) |
+| `/health` | GET | Returns `{"status":"ok","role":"master"}` |
+
+Authenticate with `Authorization: Bearer <api_key>` when `api_key` is set.
 
 ### Logging
 
