@@ -83,7 +83,8 @@ func (s *DNSServer) reloadConfigFileUnlocked(configPath string) error {
 	s.setConfig(&newCfg)
 	s.nameservers = temp.nameservers
 	s.overwrites = temp.overwrites
-	s.blocked = temp.blocked
+	s.blockedSuffix = temp.blockedSuffix
+	s.blockedWildcard = temp.blockedWildcard
 	s.urlBlockLists = temp.urlBlockLists
 	s.httpClient = temp.httpClient
 	s.maxCacheSize = temp.maxCacheSize
@@ -95,7 +96,7 @@ func (s *DNSServer) reloadConfigFileUnlocked(configPath string) error {
 	}
 
 	log.Printf("Config reloaded from %s (%d blocked hosts, %d overwrites, %d nameservers)",
-		configPath, len(s.blocked), len(s.overwrites), len(s.nameservers))
+		configPath, blockRuleCount(s), overwriteCount(s.overwrites), len(s.nameservers))
 	return nil
 }
 

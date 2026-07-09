@@ -9,9 +9,12 @@
 malware-site.com
 phishing-site.com
 
-# Format 3: Adblock format
+# Format 3: Adblock / AdGuard format (domain + subdomains)
 ||adserver.com^
 ||tracker.com$
+
+# Format 4: Wildcard block (single label before suffix)
+||*.tracker.com^
 
 # Comments are ignored
 # Empty lines are ignored

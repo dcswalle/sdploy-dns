@@ -60,9 +60,27 @@ type Config struct {
 
 // OverwriteEntry represents a parsed overwrite entry.
 type OverwriteEntry struct {
-	IP      string     // IP address to return (from first element of ips if conditional)
+	IP      string // IP address to return (from first element of ips if conditional)
 	Subnets []*net.IPNet
-	IPs     []net.IP   // Client IPs to match (first IP is also used as return IP if no simple IP set)
+	IPs     []net.IP // Client IPs to match (first IP is also used as return IP if no simple IP set)
+}
+
+// WildcardOverwrite maps *.suffix to a DNS overwrite entry.
+type WildcardOverwrite struct {
+	Suffix string
+	Entry  *OverwriteEntry
+}
+
+// OverwriteIndex holds exact and wildcard DNS overwrites.
+type OverwriteIndex struct {
+	Exact     map[string]*OverwriteEntry
+	Wildcards []WildcardOverwrite
+}
+
+// WildcardBlock maps *.suffix to a block entry.
+type WildcardBlock struct {
+	Suffix string
+	Entry  *BlockEntry
 }
 
 // BlockEntry represents a parsed block entry with optional IP/subnet restrictions.
@@ -98,8 +116,9 @@ type PendingRequest struct {
 type DNSServer struct {
 	configAtomic atomic.Value // *Config; use cfg() / setConfig() for access
 	reloadMu     sync.Mutex   // serializes config file reloads
-	blocked       map[string]*BlockEntry // Changed to support conditional blocking
-	overwrites    map[string]*OverwriteEntry
+	blockedSuffix    map[string]*BlockEntry
+	blockedWildcard  []WildcardBlock
+	overwrites       *OverwriteIndex
 	nameservers   []NameserverConfig
 	cache         map[string]*CacheEntry // DNS response cache
 	cacheMu       sync.RWMutex           // Cache mutex - see lock ordering above

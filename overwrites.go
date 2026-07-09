@@ -2,38 +2,58 @@ package main
 
 import "net"
 
-// getOverwrite returns the overwritten IP for a domain if it exists and matches client IP.
 func (s *DNSServer) getOverwrite(domain string, clientIP net.IP) (string, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	// Domain is already normalized in handler
-	entry, exists := s.overwrites[domain]
-	if !exists {
+	if s.overwrites == nil {
 		return "", false
 	}
 
-	// If no IP/subnet restrictions, apply to all clients
+	if entry, exists := s.overwrites.Exact[domain]; exists {
+		if ip, ok := matchOverwriteEntry(entry, clientIP); ok {
+			return ip, true
+		}
+	}
+
+	for _, w := range s.overwrites.Wildcards {
+		if matchOneLabelWildcard(domain, w.Suffix) {
+			if ip, ok := matchOverwriteEntry(w.Entry, clientIP); ok {
+				return ip, true
+			}
+		}
+	}
+
+	return "", false
+}
+
+func matchOverwriteEntry(entry *OverwriteEntry, clientIP net.IP) (string, bool) {
 	if len(entry.Subnets) == 0 && len(entry.IPs) == 0 {
 		return entry.IP, true
 	}
 
-	// Check if client IP matches any specific IP
-	if clientIP != nil {
-		for _, ip := range entry.IPs {
-			if ip.Equal(clientIP) {
-				return entry.IP, true
-			}
-		}
+	if clientIP == nil {
+		return "", false
+	}
 
-		// Check if client IP matches any subnet
-		for _, subnet := range entry.Subnets {
-			if subnet.Contains(clientIP) {
-				return entry.IP, true
-			}
+	for _, ip := range entry.IPs {
+		if ip.Equal(clientIP) {
+			return entry.IP, true
 		}
 	}
 
-	// Client IP doesn't match restrictions
+	for _, subnet := range entry.Subnets {
+		if subnet.Contains(clientIP) {
+			return entry.IP, true
+		}
+	}
+
 	return "", false
+}
+
+func overwriteCount(index *OverwriteIndex) int {
+	if index == nil {
+		return 0
+	}
+	return len(index.Exact) + len(index.Wildcards)
 }

@@ -55,12 +55,13 @@ func NewDNSServer(config *Config) (*DNSServer, error) {
 }
 
 // createDNSServerInstance creates and initializes a DNS server instance.
-func createDNSServerInstance(config *Config, nameservers []NameserverConfig, overwrites map[string]*OverwriteEntry) *DNSServer {
+func createDNSServerInstance(config *Config, nameservers []NameserverConfig, overwrites *OverwriteIndex) *DNSServer {
 	// Create HTTP client with DNS fallback support
 	httpClient := createHTTPClientWithDNSFallback(config.FallbackDNS, config.DNSCheckDomain)
 
 	d := &DNSServer{
-		blocked:         make(map[string]*BlockEntry),
+		blockedSuffix:   make(map[string]*BlockEntry),
+		blockedWildcard: make([]WildcardBlock, 0),
 		overwrites:      overwrites,
 		nameservers:     nameservers,
 		cache:           make(map[string]*CacheEntry),
@@ -95,7 +96,7 @@ func (s *DNSServer) startBackgroundServices() {
 		log.Printf("URL-based block list reloader started (interval: %d minutes)", reloadInterval)
 	}
 
-	log.Printf("Loaded %d blocked hosts and %d DNS overwrites", len(s.blocked), len(s.overwrites))
+	log.Printf("Loaded %d blocked hosts and %d DNS overwrites", blockRuleCount(s), overwriteCount(s.overwrites))
 	log.Printf("Configured %d nameservers", len(s.nameservers))
 	if cfg.CacheTTL > 0 {
 		log.Printf("DNS caching enabled (TTL: %ds)", cfg.CacheTTL)

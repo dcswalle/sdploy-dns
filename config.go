@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"sort"
 	"strings"
 )
 
@@ -198,11 +199,13 @@ func parseOverwriteFromMapInterface(v map[interface{}]interface{}, domain string
 }
 
 // parseOverwrites parses overwrite configuration (supports both old and new format).
-func parseOverwrites(overwrites map[string]interface{}) (map[string]*OverwriteEntry, error) {
-	result := make(map[string]*OverwriteEntry)
+func parseOverwrites(overwrites map[string]interface{}) (*OverwriteIndex, error) {
+	result := &OverwriteIndex{
+		Exact: make(map[string]*OverwriteEntry),
+	}
 
 	for domain, value := range overwrites {
-		// Skip comment entries (YAML parser might include them as keys with nil values)
+		// Skip comment entries (YAML parser might include them with nil values)
 		if value == nil {
 			continue
 		}
@@ -211,7 +214,6 @@ func parseOverwrites(overwrites map[string]interface{}) (map[string]*OverwriteEn
 
 		switch v := value.(type) {
 		case string:
-			// Old format: simple IP string
 			entry.IP = v
 		case map[string]interface{}:
 			var err error
@@ -233,8 +235,27 @@ func parseOverwrites(overwrites map[string]interface{}) (map[string]*OverwriteEn
 			return nil, fmt.Errorf("missing IP for overwrite %s", domain)
 		}
 
-		result[normalizeDomain(domain)] = entry
+		if strings.HasPrefix(domain, "*.") {
+			suffix := normalizeDomain(strings.TrimPrefix(domain, "*."))
+			if suffix == "" {
+				return nil, fmt.Errorf("invalid wildcard overwrite %s", domain)
+			}
+			result.Wildcards = append(result.Wildcards, WildcardOverwrite{
+				Suffix: suffix,
+				Entry:  entry,
+			})
+			continue
+		}
+
+		result.Exact[normalizeDomain(domain)] = entry
 	}
 
+	sortWildcardOverwrites(result.Wildcards)
 	return result, nil
+}
+
+func sortWildcardOverwrites(wildcards []WildcardOverwrite) {
+	sort.Slice(wildcards, func(i, j int) bool {
+		return len(wildcards[i].Suffix) > len(wildcards[j].Suffix)
+	})
 }
