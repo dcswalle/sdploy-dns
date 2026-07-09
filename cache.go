@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"net"
 	"time"
 
@@ -193,9 +194,8 @@ func (s *DNSServer) cachePositiveResponse(r *dns.Msg, resp *dns.Msg, key string)
 	ttl := cfg.CacheTTL
 	if len(resp.Answer) > 0 {
 		// Use minimum TTL from answer records
-		const maxUint32 = 4294967295
-		var minTTL uint32 = maxUint32
-		if ttl > 0 && ttl <= maxUint32 {
+		minTTL := uint32(math.MaxUint32)
+		if ttl > 0 {
 			minTTL = uint32(ttl)
 		}
 		for _, rr := range resp.Answer {
@@ -204,7 +204,7 @@ func (s *DNSServer) cachePositiveResponse(r *dns.Msg, resp *dns.Msg, key string)
 			}
 		}
 		// Use the smaller of response TTL or configured TTL
-		if minTTL < maxUint32 && int(minTTL) < ttl {
+		if minTTL < math.MaxUint32 && int(minTTL) < ttl {
 			ttl = int(minTTL)
 		}
 	}
