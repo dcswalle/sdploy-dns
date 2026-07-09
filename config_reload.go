@@ -40,6 +40,7 @@ func (s *DNSServer) reloadConfigFileUnlocked(configPath string) error {
 		return fmt.Errorf("parse config: %w", err)
 	}
 
+	ApplyEnvOverrides(&newCfg)
 	ApplyConfigDefaults(&newCfg)
 
 	prev := s.cfg()

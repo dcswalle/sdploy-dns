@@ -10,12 +10,12 @@ listen_addr: ":53"
 #role: "master"
 #master:
 #  api_addr: ":8053"       # HTTP API listen address
-#  api_key: "changeme"     # Shared secret (Authorization: Bearer <key>); empty = no auth
+#  api_key: ""              # Set GO_DNS_MASTER_API_KEY in .env (never commit secrets)
 #
 #role: "slave"
 #slave:
 #  master_url: "http://10.0.0.1:8053"  # Master's HTTP API URL
-#  api_key: "changeme"                  # Must match master's api_key
+#  api_key: ""                          # Set GO_DNS_SLAVE_API_KEY in .env
 #  sync_interval: 30                    # Seconds between config pulls (default 30)
 
 # Logging (all disabled by default for silent operation)

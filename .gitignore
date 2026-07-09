@@ -1,1 +1,18 @@
 # Binary output
+go-dns
+go-dns-server
+go-dns-*
+*.exe
+
+# Environment and secrets (never commit)
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/

@@ -43,7 +43,7 @@ Examples: `v1.0.0`, `v1.2.3`, `v2.0.0-beta.1`
    - Go to the [Actions tab](https://github.com/dcswalle/sdploy-dns/actions) in your repository
    - You should see the "Build & Release" workflow running
    - The workflow will:
-     - Build binaries for multiple platforms (Linux and macOS, both amd64 and arm64)
+     - Build binaries for Linux and Windows across all supported Go architectures
      - Generate release notes from commit messages since the last tag
      - Create a GitHub release with the built binaries attached
 
@@ -53,10 +53,8 @@ Examples: `v1.0.0`, `v1.2.3`, `v2.0.0-beta.1`
    - The new release should be published with:
      - Release notes (auto-generated from commits)
      - Binary artifacts for all platforms:
-       - `go-dns-linux-amd64`
-       - `go-dns-linux-arm64`
-       - `go-dns-darwin-amd64`
-       - `go-dns-darwin-arm64`
+       - Linux: `go-dns-linux-386`, `go-dns-linux-amd64`, `go-dns-linux-arm`, `go-dns-linux-arm64`, `go-dns-linux-loong64`, `go-dns-linux-mips`, `go-dns-linux-mipsle`, `go-dns-linux-mips64`, `go-dns-linux-mips64le`, `go-dns-linux-ppc64`, `go-dns-linux-ppc64le`, `go-dns-linux-riscv64`, `go-dns-linux-s390x`
+       - Windows: `go-dns-windows-386.exe`, `go-dns-windows-amd64.exe`, `go-dns-windows-arm64.exe`
 
 ## What the Workflow Does
 
@@ -64,10 +62,9 @@ The release workflow (`.github/workflows/release.yml`) performs the following:
 
 ### Build Job
 
-- Runs a matrix build for multiple platforms (Linux and macOS) and architectures (amd64 and arm64)
+- Runs a matrix build for Linux and Windows across all supported Go architectures
 - Uses Go 1.24 with CGO disabled for static binaries
-- Embeds the version string from the tag name into the binary using `-ldflags`
-- Uploads each binary as a build artifact
+- Uploads each binary as a build artifact (`.exe` suffix on Windows)
 
 ### Release Job
 
@@ -127,11 +124,15 @@ If you need to delete a release:
 If you need to create a release manually without the workflow:
 
 ```bash
-# Build for all platforms
-GOOS=linux GOARCH=amd64 go build -o go-dns-linux-amd64 .
-GOOS=linux GOARCH=arm64 go build -o go-dns-linux-arm64 .
-GOOS=darwin GOARCH=amd64 go build -o go-dns-darwin-amd64 .
-GOOS=darwin GOARCH=arm64 go build -o go-dns-darwin-arm64 .
+# Linux
+for arch in 386 amd64 arm arm64 loong64 mips mipsle mips64 mips64le ppc64 ppc64le riscv64 s390x; do
+  GOOS=linux GOARCH=$arch CGO_ENABLED=0 go build -o go-dns-linux-$arch .
+done
+
+# Windows
+for arch in 386 amd64 arm64; do
+  GOOS=windows GOARCH=$arch CGO_ENABLED=0 go build -o go-dns-windows-$arch.exe .
+done
 ```
 
 Then create the release manually through the GitHub UI. However, using the automated workflow is strongly recommended for consistency.
