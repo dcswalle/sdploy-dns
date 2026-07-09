@@ -234,9 +234,9 @@ func (s *DNSServer) processBlockListReader(reader io.Reader, sourceName string, 
 			continue
 		}
 
-		domain := s.parseHostLine(line)
-		if domain != "" {
-			s.addBlockedDomain(domain, restrictions)
+		rule, ok := s.parseHostLine(line)
+		if ok {
+			s.addBlockRule(rule, restrictions)
 			loadedCount++
 		}
 	}
@@ -249,23 +249,49 @@ func (s *DNSServer) processBlockListReader(reader io.Reader, sourceName string, 
 	return nil
 }
 
-// addBlockedDomain adds a domain to the blocked list with optional restrictions.
-func (s *DNSServer) addBlockedDomain(domain string, restrictions *BlockEntry) {
+// parseHostLine parses a line from a host file and extracts a block rule.
+func (s *DNSServer) parseHostLine(line string) (ParsedBlockRule, bool) {
+	return parseFilterRule(line)
+}
+
+// addBlockRule stores a parsed block rule with optional client restrictions.
+func (s *DNSServer) addBlockRule(rule ParsedBlockRule, restrictions *BlockEntry) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	domain = normalizeDomain(domain)
-	if restrictions != nil {
-		entry := &BlockEntry{
-			Subnets: make([]*net.IPNet, len(restrictions.Subnets)),
-			IPs:     make([]net.IP, len(restrictions.IPs)),
-		}
-		copy(entry.Subnets, restrictions.Subnets)
-		copy(entry.IPs, restrictions.IPs)
-		s.blocked[domain] = entry
-	} else {
-		s.blocked[domain] = &BlockEntry{}
+	entry := cloneBlockEntry(restrictions)
+
+	switch rule.Kind {
+	case BlockWildcard:
+		s.blockedWildcard = append(s.blockedWildcard, WildcardBlock{
+			Suffix: rule.WildcardSuffix,
+			Entry:  entry,
+		})
+	default:
+		s.blockedSuffix[rule.Domain] = entry
 	}
+}
+
+func cloneBlockEntry(restrictions *BlockEntry) *BlockEntry {
+	if restrictions == nil {
+		return &BlockEntry{}
+	}
+	entry := &BlockEntry{
+		Subnets: make([]*net.IPNet, len(restrictions.Subnets)),
+		IPs:     make([]net.IP, len(restrictions.IPs)),
+	}
+	copy(entry.Subnets, restrictions.Subnets)
+	copy(entry.IPs, restrictions.IPs)
+	return entry
+}
+
+// addBlockedDomain adds a domain to the blocked list with optional restrictions.
+func (s *DNSServer) addBlockedDomain(domain string, restrictions *BlockEntry) {
+	rule, ok := parseFilterRule(domain)
+	if !ok {
+		rule = ParsedBlockRule{Kind: BlockSuffix, Domain: normalizeDomain(domain)}
+	}
+	s.addBlockRule(rule, restrictions)
 }
 
 // logBlockListLoaded logs the loading of a block list file with optional restrictions.
@@ -292,65 +318,39 @@ func (s *DNSServer) logBlockListLoaded(filePath string, count int, restrictions 
 	}
 }
 
-// parseHostLine parses a line from a host file and extracts the domain.
-func (s *DNSServer) parseHostLine(line string) string {
-	// Remove adblock-style prefixes
-	line = strings.TrimPrefix(line, "||")
-	line = strings.TrimSuffix(line, "^")
-	line = strings.TrimSuffix(line, "$")
-
-	// Split by whitespace
-	parts := strings.Fields(line)
-	if len(parts) == 0 {
-		return ""
-	}
-
-	// If first part is an IP address, get the domain from the second part
-	if len(parts) > 1 {
-		firstPart := parts[0]
-		if net.ParseIP(firstPart) != nil {
-			// First part is an IP, domain is in the second part
-			return parts[1]
-		}
-	}
-
-	// Otherwise, the first part is the domain
-	domain := parts[0]
-
-	// Remove any remaining adblock-style characters
-	domain = strings.TrimPrefix(domain, "||")
-	domain = strings.TrimSuffix(domain, "^")
-	domain = strings.TrimSuffix(domain, "$")
-
-	return domain
-}
-
 // isBlocked checks if a domain is blocked for the given client IP.
 func (s *DNSServer) isBlocked(domain string, clientIP net.IP) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	// Check exact match first (most common case)
-	if entry, exists := s.blocked[domain]; exists {
-		if s.matchesBlockEntry(entry, clientIP) {
-			return true
-		}
-	}
-
-	// Check subdomain matches (e.g., if ads.example.com is blocked, check example.com)
-	// Optimized: use string slicing instead of Split/Join to reduce allocations
+	// Suffix rules: example.com blocks example.com and *.example.com
 	for i := 0; i < len(domain); i++ {
 		if domain[i] == '.' && i+1 < len(domain) {
-			parentDomain := domain[i+1:]
-			if entry, exists := s.blocked[parentDomain]; exists {
+			if entry, exists := s.blockedSuffix[domain[i+1:]]; exists {
 				if s.matchesBlockEntry(entry, clientIP) {
 					return true
 				}
 			}
 		}
 	}
+	if entry, exists := s.blockedSuffix[domain]; exists {
+		if s.matchesBlockEntry(entry, clientIP) {
+			return true
+		}
+	}
+
+	// Wildcard rules: *.tracker.com
+	for _, rule := range s.blockedWildcard {
+		if matchOneLabelWildcard(domain, rule.Suffix) && s.matchesBlockEntry(rule.Entry, clientIP) {
+			return true
+		}
+	}
 
 	return false
+}
+
+func blockRuleCount(s *DNSServer) int {
+	return len(s.blockedSuffix) + len(s.blockedWildcard)
 }
 
 // matchesBlockEntry checks if a block entry applies to the given client IP.
@@ -419,9 +419,9 @@ func (s *DNSServer) reloadURLBlockList(urlBlockList URLBlockList) error {
 			continue
 		}
 
-		domain := s.parseHostLine(line)
-		if domain != "" {
-			s.addBlockedDomain(domain, urlBlockList.Restrictions)
+		rule, ok := s.parseHostLine(line)
+		if ok {
+			s.addBlockRule(rule, urlBlockList.Restrictions)
 			loadedCount++
 		}
 	}

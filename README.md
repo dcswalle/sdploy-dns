@@ -169,7 +169,13 @@ overwrites:
       - "127.0.0.1"       # returned IP
       - "192.168.1.50"    # client IPs that receive this override
       - "192.168.1.51"
+
+  # Wildcard: any single-label host under the suffix
+  "*.local.sdploy.com": "10.0.0.5"
+  myserver.local.sdploy.com: "192.168.1.10"  # exact entry overrides wildcard
 ```
+
+Wildcard overwrites match one label before the suffix (for example `*.local.sdploy.com` matches `app.local.sdploy.com` but not `local.sdploy.com` or `a.b.local.sdploy.com`). Exact entries always take priority over wildcards.
 
 ### Block Lists
 
@@ -204,12 +210,26 @@ Supported block list formats:
 # Domain only
 malware-site.com
 
-# Adblock format
+# Adblock / AdGuard format (domain + subdomains)
 ||adserver.com^
 ||tracker.com$
+
+# Wildcard (single label before suffix)
+||*.tracker.com^
 ```
 
-Popular sources: [StevenBlack/hosts](https://github.com/StevenBlack/hosts), [AdAway](https://adaway.org/hosts.txt)
+Supported DNS-applicable rules:
+
+| Format | Behavior |
+|---|---|
+| `127.0.0.1 ads.example.com` | Block `ads.example.com` and subdomains |
+| `malware-site.com` | Block domain and subdomains |
+| `\|\|example.com^` | Block domain and subdomains |
+| `\|\|*.tracker.com^` | Block `*.tracker.com` (not bare `tracker.com`) |
+
+Not supported (browser-only rules are skipped): URL/path rules (`/ads/`), regex filters, `$document` modifiers, and allowlist exceptions (`@@`, `!`).
+
+Popular sources: [StevenBlack/hosts](https://github.com/StevenBlack/hosts), [AdAway](https://adaway.org/hosts.txt), [AdGuard Hostlists Registry](https://github.com/AdguardTeam/HostlistsRegistry)
 
 ### Caching
 

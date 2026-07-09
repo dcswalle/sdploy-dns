@@ -57,6 +57,10 @@ nameservers:
 #overwrites:
 #  example.local: "127.0.0.1"
 #
+# Wildcard overwrite (matches one label before suffix):
+#  "*.local.sdploy.com": "10.0.0.5"
+#  myserver.local.sdploy.com: "192.168.1.10"  # exact overrides wildcard
+#
 # Per-client overwrite (first IP in 'ips' is the returned address):
 #  internal.local:
 #    ips:
